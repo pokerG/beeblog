@@ -116,19 +116,20 @@ func GetAllCategories() ([]*Category, error) {
 	return cates, err
 }
 
-func AddTopic(title, category, lable, content string) error {
+func AddTopic(title, category, lable, content, attachment string) error {
 	// 处理标签
 	lable = "$" + strings.Join(strings.Split(lable, " "), "#$") + "#"
 
 	o := orm.NewOrm()
 
 	topic := &Topic{
-		Title:    title,
-		Category: category,
-		Lables:   lable,
-		Content:  content,
-		Created:  time.Now(),
-		Updated:  time.Now(),
+		Title:      title,
+		Category:   category,
+		Lables:     lable,
+		Content:    content,
+		Attachment: attachment,
+		Created:    time.Now(),
+		Updated:    time.Now(),
 	}
 	_, err := o.Insert(topic)
 	if err != nil {
@@ -172,7 +173,7 @@ func GetTopic(tid string) (*Topic, error) {
 	return topic, nil
 }
 
-func ModifyTopic(tid, title, category, lable, content string) error {
+func ModifyTopic(tid, title, category, lable, content, attachment string) error {
 	tidNum, err := strconv.ParseInt(tid, 10, 64)
 	if err != nil {
 		return err
@@ -180,15 +181,17 @@ func ModifyTopic(tid, title, category, lable, content string) error {
 
 	lable = "$" + strings.Join(strings.Split(lable, " "), "#$") + "#"
 
-	var oldCate string
+	var oldCate, oldAttach string
 	o := orm.NewOrm()
 	topic := &Topic{Id: tidNum}
 	if o.Read(topic) == nil {
 		oldCate = topic.Category
+		oldAttach = topic.Attachment
 		topic.Title = title
 		topic.Category = category
 		topic.Lables = lable
 		topic.Content = content
+		topic.Attachment = attachment
 		topic.Updated = time.Now()
 		_, err = o.Update(topic)
 		if err != nil {
@@ -205,6 +208,11 @@ func ModifyTopic(tid, title, category, lable, content string) error {
 			cate.TopicCount--
 			_, err = o.Update(cate)
 		}
+	}
+
+	// 删除旧的附件
+	if len(oldAttach) > 0 {
+		os.Remove(path.Join("attachment", oldAttach))
 	}
 
 	cate := new(Category)
@@ -247,7 +255,7 @@ func DeleteTopic(tid string) error {
 	return err
 }
 
-func GetAllTopics(category, lable string, isDesc bool) (topics []*Topic, err error) {
+func GetAllTopics(category string, lable string, isDesc bool) (topics []*Topic, err error) {
 	o := orm.NewOrm()
 
 	topics = make([]*Topic, 0)

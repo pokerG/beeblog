@@ -1,10 +1,13 @@
 package main
 
 import (
-	"beeblog/controllers"
-	"beeblog/models"
+	"os"
+
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
+
+	"beeblog/controllers"
+	"beeblog/models"
 )
 
 func init() {
@@ -27,6 +30,10 @@ func main() {
 	beego.Router("/reply/add", &controllers.ReplyController{}, "post:Add")
 	beego.Router("/reply/delete", &controllers.ReplyController{}, "get:Delete")
 	beego.Router("/login", &controllers.LoginController{})
+
+	// 附件处理
+	os.Mkdir("attachment", os.ModePerm)
+	beego.Router("/attachment/:all", &controllers.AttachController{})
 
 	// 启动 beego
 	beego.Run()

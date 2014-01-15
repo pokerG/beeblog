@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"path"
 	"strings"
 
 	"github.com/astaxie/beego"
@@ -37,11 +38,27 @@ func (this *TopicController) Post() {
 	category := this.Input().Get("category")
 	lable := this.Input().Get("lable")
 
-	var err error
+	// 获取附件
+	_, fh, err := this.GetFile("attachment")
+	if err != nil {
+		beego.Error(err)
+	}
+
+	var attachment string
+	if fh != nil {
+		// 保存附件
+		attachment = fh.Filename
+		beego.Info(attachment)
+		err = this.SaveToFile("attachment", path.Join("attachment", attachment))
+		if err != nil {
+			beego.Error(err)
+		}
+	}
+
 	if len(tid) == 0 {
-		err = models.AddTopic(title, category, lable, content)
+		err = models.AddTopic(title, category, lable, content, attachment)
 	} else {
-		err = models.ModifyTopic(tid, title, category, lable, content)
+		err = models.ModifyTopic(tid, title, category, lable, content, attachment)
 	}
 
 	if err != nil {
@@ -97,7 +114,9 @@ func (this *TopicController) Modify() {
 func (this *TopicController) View() {
 	this.TplNames = "topic_view.html"
 
-	tid := this.Ctx.Input.Params("0")
+	reqUrl := this.Ctx.Request.RequestURI
+	i := strings.LastIndex(reqUrl, "/")
+	tid := reqUrl[i+1:]
 	topic, err := models.GetTopic(tid)
 	if err != nil {
 		beego.Error(err)
