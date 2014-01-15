@@ -23,6 +23,9 @@ func main() {
 	beego.Router("/category", &controllers.CategoryController{})
 	beego.Router("/topic", &controllers.TopicController{})
 	beego.AutoRouter(&controllers.TopicController{})
+	beego.Router("/reply", &controllers.ReplyController{})
+	beego.Router("/reply/add", &controllers.ReplyController{}, "post:Add")
+	beego.Router("/reply/delete", &controllers.ReplyController{}, "get:Delete")
 	beego.Router("/login", &controllers.LoginController{})
 
 	// 启动 beego

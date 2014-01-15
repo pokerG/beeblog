@@ -34,6 +34,7 @@ type Topic struct {
 	Id              int64
 	Uid             int64
 	Title           string
+	Category        string
 	Content         string `orm:"size(5000)"`
 	Attachment      string
 	Created         time.Time `orm:"index"`
@@ -45,6 +46,15 @@ type Topic struct {
 	ReplyLastUserId int64
 }
 
+// 评论
+type Comment struct {
+	Id      int64
+	Tid     int64
+	Name    string
+	Content string    `orm:"size(1000)"`
+	Created time.Time `orm:"index"`
+}
+
 func RegisterDB() {
 	// 检查数据库文件
 	if !com.IsExist(_DB_NAME) {
@@ -53,7 +63,7 @@ func RegisterDB() {
 	}
 
 	// 注册模型
-	orm.RegisterModel(new(Category), new(Topic))
+	orm.RegisterModel(new(Category), new(Topic), new(Comment))
 	// 注册驱动（“sqlite3” 属于默认注册，此处代码可省略）
 	orm.RegisterDriver(_SQLITE3_DRIVER, orm.DR_Sqlite)
 	// 注册默认数据库
@@ -104,14 +114,15 @@ func GetAllCategories() ([]*Category, error) {
 	return cates, err
 }
 
-func AddTopic(title, content string) error {
+func AddTopic(title, category, content string) error {
 	o := orm.NewOrm()
 
 	topic := &Topic{
-		Title:   title,
-		Content: content,
-		Created: time.Now(),
-		Updated: time.Now(),
+		Title:    title,
+		Category: category,
+		Content:  content,
+		Created:  time.Now(),
+		Updated:  time.Now(),
 	}
 	_, err := o.Insert(topic)
 	return err
@@ -133,13 +144,12 @@ func GetTopic(tid string) (*Topic, error) {
 		return nil, err
 	}
 
-
 	topic.Views++
 	_, err = o.Update(topic)
 	return topic, nil
 }
 
-func ModifyTopic(tid, title, content string) error {
+func ModifyTopic(tid, title, category, content string) error {
 	tidNum, err := strconv.ParseInt(tid, 10, 64)
 	if err != nil {
 		return err
@@ -149,6 +159,7 @@ func ModifyTopic(tid, title, content string) error {
 	topic := &Topic{Id: tidNum}
 	if o.Read(topic) == nil {
 		topic.Title = title
+		topic.Category = category
 		topic.Content = content
 		topic.Updated = time.Now()
 		o.Update(topic)
@@ -169,16 +180,64 @@ func DeleteTopic(tid string) error {
 	return err
 }
 
-func GetAllTopics(isDesc bool) (topics []*Topic, err error) {
+func GetAllTopics(category string, isDesc bool) (topics []*Topic, err error) {
 	o := orm.NewOrm()
 
 	topics = make([]*Topic, 0)
 
 	qs := o.QueryTable("topic")
 	if isDesc {
+		if len(category) > 0 {
+			qs = qs.Filter("category", category)
+		}
 		_, err = qs.OrderBy("-created").All(&topics)
+
 	} else {
 		_, err = qs.All(&topics)
 	}
 	return topics, err
+}
+
+func AddReply(tid, nickname, content string) error {
+	tidNum, err := strconv.ParseInt(tid, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	reply := &Comment{
+		Tid:     tidNum,
+		Name:    nickname,
+		Content: content,
+		Created: time.Now(),
+	}
+	o := orm.NewOrm()
+	_, err = o.Insert(reply)
+	return err
+}
+
+func GetAllReplies(tid string) (replies []*Comment, err error) {
+	tidNum, err := strconv.ParseInt(tid, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	replies = make([]*Comment, 0)
+
+	o := orm.NewOrm()
+	qs := o.QueryTable("comment")
+	_, err = qs.Filter("tid", tidNum).All(&replies)
+	return replies, err
+}
+
+func DeleteReply(rid string) error {
+	ridNum, err := strconv.ParseInt(rid, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	o := orm.NewOrm()
+
+	reply := &Comment{Id: ridNum}
+	_, err = o.Delete(reply)
+	return err
 }
