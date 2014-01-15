@@ -15,7 +15,8 @@ func (this *HomeController) Get() {
 	this.TplNames = "home.html"
 	this.Data["IsLogin"] = checkAccount(this.Ctx)
 
-	topics, err := models.GetAllTopics(this.Input().Get("cate"), true)
+	topics, err := models.GetAllTopics(
+		this.Input().Get("cate"), this.Input().Get("lable"), true)
 	if err != nil {
 		beego.Error(err)
 	}

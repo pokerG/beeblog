@@ -1,9 +1,11 @@
 package controllers
 
 import (
-	"beeblog/models"
+	"strings"
 
 	"github.com/astaxie/beego"
+
+	"beeblog/models"
 )
 
 type TopicController struct {
@@ -15,7 +17,7 @@ func (this *TopicController) Get() {
 	this.TplNames = "topic.html"
 	this.Data["IsLogin"] = checkAccount(this.Ctx)
 
-	topics, err := models.GetAllTopics("", false)
+	topics, err := models.GetAllTopics("", "", false)
 	if err != nil {
 		beego.Error(err)
 	}
@@ -33,12 +35,13 @@ func (this *TopicController) Post() {
 	title := this.Input().Get("title")
 	content := this.Input().Get("content")
 	category := this.Input().Get("category")
+	lable := this.Input().Get("lable")
 
 	var err error
 	if len(tid) == 0 {
-		err = models.AddTopic(title, category, content)
+		err = models.AddTopic(title, category, lable, content)
 	} else {
-		err = models.ModifyTopic(tid, title, category, content)
+		err = models.ModifyTopic(tid, title, category, lable, content)
 	}
 
 	if err != nil {
@@ -94,7 +97,7 @@ func (this *TopicController) Modify() {
 func (this *TopicController) View() {
 	this.TplNames = "topic_view.html"
 
-	tid := this.Ctx.Input.Params["0"]
+	tid := this.Ctx.Input.Params("0")
 	topic, err := models.GetTopic(tid)
 	if err != nil {
 		beego.Error(err)
@@ -102,6 +105,7 @@ func (this *TopicController) View() {
 		return
 	}
 	this.Data["Topic"] = topic
+	this.Data["Lables"] = strings.Split(topic.Lables, " ")
 
 	replies, err := models.GetAllReplies(tid)
 	if err != nil {
